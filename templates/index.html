@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <title>AudioTo-txt — Transcrever áudio para TXT</title>
+    <meta name="description" content="Envie um MP3 e receba a transcrição em arquivo TXT.">
+    <link rel="stylesheet" href="https://cssintranetsaude.netlify.app/assets/css/styles-template-saude.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=txt6">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}?v=txt6">
+</head>
+<body>
+    <div class="app-bg" aria-hidden="true"></div>
+
+    <header class="topbar">
+        <div class="brand">
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 32 32" width="28" height="28" fill="none">
+                    <rect width="32" height="32" rx="9" fill="currentColor" opacity=".16"/>
+                    <path d="M11 8.5h7l5 5V23a1.5 1.5 0 0 1-1.5 1.5h-10.5A1.5 1.5 0 0 1 10 23V10a1.5 1.5 0 0 1 1-1.5z" stroke="currentColor" stroke-width="1.7"/>
+                    <path d="M18 8.5V14h5.5M13 18h6M13 21.2h4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                </svg>
+            </span>
+            <div>
+                <strong>AudioTo-txt</strong>
+                <small>Áudio → texto · arquivo .txt</small>
+            </div>
+        </div>
+        <span class="txt-chip">Saída TXT</span>
+    </header>
+
+    <main class="wrap">
+        <section class="hero">
+            <p class="eyebrow">Transcrição local para arquivo de texto</p>
+            <h1>Áudio ou vídeo. TXT sai.</h1>
+            <p class="lede">Envie MP3, WAV, MP4 e outros. A app detecta o formato sozinha e gera o <strong>.txt</strong>.</p>
+            <ol class="flow" aria-label="Etapas">
+                <li>1. Áudio</li>
+                <li>2. Texto</li>
+                <li class="is-out">3. TXT</li>
+            </ol>
+        </section>
+
+        <section class="card" id="app-card" data-state="idle" aria-live="polite">
+            <div class="panel" data-panel="idle">
+                <form id="upload-form" class="dropzone" tabindex="0" aria-label="Área para enviar arquivo de áudio">
+                    <input
+                        id="file-input"
+                        class="file-input"
+                        type="file"
+                        name="file"
+                        accept=".mp3,.wav,.m4a,.aac,.flac,.ogg,.opus,.wma,.webm,.mp4,.mov,.mkv,.avi,.mpeg,.mpg,.3gp,.m4v,.amr,.aiff,.aif,audio/*,video/*"
+                    >
+                    <div class="dropzone-icon" aria-hidden="true">
+                        <svg viewBox="0 0 88 72" width="88" height="72" fill="none">
+                            <rect x="4" y="10" width="36" height="52" rx="8" stroke="currentColor" stroke-width="2"/>
+                            <path d="M14 28h16M14 36h12M14 44h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M46 36h10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+                            <path d="M54 30l8 6-8 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                            <rect x="66" y="16" width="18" height="40" rx="6" fill="currentColor" opacity=".16" stroke="currentColor" stroke-width="2"/>
+                            <text x="75" y="40" text-anchor="middle" fill="currentColor" font-size="11" font-weight="700">TXT</text>
+                        </svg>
+                    </div>
+                    <h2>Arraste o arquivo para gerar um TXT</h2>
+                    <p>MP3, WAV, MP4 e outros · o formato é detectado automaticamente</p>
+                    <button type="button" class="btn btn-primary" id="select-btn">Selecionar arquivo</button>
+                    <ul class="formats" aria-label="Formatos aceitos">
+                        <li>MP3</li><li>WAV</li><li>MP4</li><li>M4A</li><li>MOV</li><li>WEBM</li><li>OGG</li><li>FLAC</li><li>AAC</li>
+                    </ul>
+                </form>
+            </div>
+
+            <div class="panel" data-panel="file-selected" hidden>
+                <div class="file-summary">
+                    <div class="file-badge" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
+                            <path d="M9 18V7.5a3 3 0 1 1 6 0V16a1.8 1.8 0 1 1-3.6 0V9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="file-meta">
+                        <h2 id="file-name">arquivo.mp3</h2>
+                        <p>
+                            <span id="file-size">0 MB</span>
+                            <span class="dot" aria-hidden="true">·</span>
+                            <span id="file-ext">MP4</span>
+                            <span class="dot" aria-hidden="true">·</span>
+                            <span id="file-detected">formato detectado</span>
+                        </p>
+                    </div>
+                    <button type="button" class="btn btn-ghost" id="change-file-btn">Trocar</button>
+                </div>
+                <audio id="source-player" class="player" controls preload="metadata"></audio>
+                <video id="source-video" class="player" controls preload="metadata" hidden></video>
+                <button type="button" class="btn btn-primary btn-block" id="convert-btn">Transcrever para TXT</button>
+            </div>
+
+            <div class="panel" data-panel="converting" hidden>
+                <div class="converting-head">
+                    <span class="pulse" aria-hidden="true"></span>
+                    <h2 id="converting-title">Gerando o TXT...</h2>
+                </div>
+                <p class="converting-file" id="converting-file">arquivo.mp3</p>
+                <div class="progress-wrap">
+                    <div
+                        class="progress"
+                        id="progress-bar"
+                        role="progressbar"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        aria-valuenow="0"
+                        aria-label="Progresso da transcrição"
+                    >
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <div class="progress-percent" id="progress-percent">0%</div>
+                    <div class="progress-meta">
+                        <span id="progress-label">Preparando o arquivo de texto</span>
+                        <span id="progress-value">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" data-panel="success" hidden>
+                <div class="success-banner">
+                    <span class="success-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
+                            <path d="M7 4.5h7l4 4V19a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 19V6A1.5 1.5 0 0 1 7 4.5z" stroke="currentColor" stroke-width="1.6"/>
+                            <path d="M14 4.5V9h4.5M8.5 13h7M8.5 16h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <h2>TXT pronto!</h2>
+                        <p id="result-meta">arquivo.txt</p>
+                    </div>
+                </div>
+                <label class="transcript-label" for="transcript-text">Conteúdo do arquivo TXT</label>
+                <textarea id="transcript-text" class="transcript" readonly></textarea>
+                <div class="action-row">
+                    <button type="button" class="btn btn-secondary" id="copy-btn">Copiar texto</button>
+                    <a class="btn btn-primary" id="download-btn" href="#" download>Baixar arquivo TXT</a>
+                </div>
+                <button type="button" class="btn btn-chatgpt btn-block" id="chatgpt-btn">Enviar para o ChatGPT</button>
+                <button type="button" class="btn btn-secondary btn-block" id="another-btn">Transcrever outro áudio</button>
+            </div>
+
+            <div class="panel" data-panel="error" hidden>
+                <div class="error-banner" role="alert">
+                    <span class="error-icon" aria-hidden="true">!</span>
+                    <div>
+                        <h2>Não foi possível gerar o TXT</h2>
+                        <p id="error-message">Verifique o arquivo e tente novamente.</p>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary btn-block" id="retry-btn">Tentar novamente</button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>Processamento local · resultado em .txt · máximo {{ (max_file_size / (1024 * 1024))|int }} MB</p>
+    </footer>
+
+    <script>
+        window.APP_CONFIG = {
+            maxFileSize: {{ max_file_size }},
+            allowedExtensions: {{ allowed_extensions | tojson }}
+        };
+    </script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=txt6"></script>
+</body>
+</html>

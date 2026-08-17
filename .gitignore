@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+uploads/*
+!uploads/.gitkeep
+converted/*
+!converted/.gitkeep
+transcripts/*
+!transcripts/.gitkeep
+.DS_Store
