@@ -420,22 +420,35 @@ def main() -> None:
     import sys
 
     cleanup_old_files()
-    ffmpeg_info = str(config.FFMPEG_PATH) if config.FFMPEG_PATH else "não encontrado"
-    print("AudioTo-txt iniciado!")
-    print(f"Acesse: http://{config.HOST}:{config.PORT}")
-    print(f"Python: {sys.executable}")
-    print(f"FFprobe: {config.FFPROBE_PATH or 'não encontrado'}")
-    print(f"Cache: v{CACHE_BUST}")
+    print("AudioTo-txt iniciado!", flush=True)
+    print(f"Acesse: http://{config.HOST}:{config.PORT}", flush=True)
+    print(f"Python: {sys.executable}", flush=True)
+    print(f"FFprobe: {config.FFPROBE_PATH or 'não encontrado'}", flush=True)
+    print(f"Cache: v{CACHE_BUST}", flush=True)
     if not config.FFMPEG_PATH:
-        print("Aviso: FFmpeg não foi localizado. A transcrição não funcionará até o caminho ser configurado.")
+        print(
+            "Aviso: FFmpeg não foi localizado. A transcrição não funcionará até o caminho ser configurado.",
+            flush=True,
+        )
     if not whisper_available():
         audio_python = config.BASE_DIR / "audio" / "Scripts" / "python.exe"
-        print("ERRO: Whisper não está neste Python.")
-        print("Não use: py app.py")
-        print("Use este comando:")
-        print(f'  "{audio_python}" app.py')
+        print("ERRO: Whisper não está neste Python.", flush=True)
+        print("Não use: py app.py", flush=True)
+        print("Use este comando:", flush=True)
+        print(f'  "{audio_python}" app.py', flush=True)
         raise SystemExit(1)
-    app.run(host=config.HOST, port=config.PORT, debug=False, threaded=True)
+    try:
+        app.run(
+            host=config.HOST,
+            port=config.PORT,
+            debug=False,
+            threaded=True,
+            use_reloader=False,
+        )
+    except OSError as exc:
+        print(f"Não foi possível abrir a porta {config.PORT}: {exc}", flush=True)
+        print("Encerre o processo anterior com encerrar.bat e tente de novo.", flush=True)
+        raise SystemExit(1) from exc
 
 
 if __name__ == "__main__":

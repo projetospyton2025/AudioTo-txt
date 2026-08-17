@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import importlib
+import importlib.util
 import logging
+import os
 import threading
 from collections.abc import Callable
 from pathlib import Path
@@ -16,14 +19,68 @@ ProgressCallback = Callable[[float | None], None]
 _model = None
 _model_lock = threading.Lock()
 _transcribe_lock = threading.Lock()
+_ffmpeg_patched = False
 
 
 def whisper_available() -> bool:
+    """Verifica se o pacote Whisper existe, sem importar PyTorch na subida."""
     try:
-        import whisper  # noqa: F401
-    except ImportError:
+        return importlib.util.find_spec("whisper") is not None
+    except (ImportError, ValueError, ModuleNotFoundError):
         return False
-    return True
+
+
+def _whisper_transcribe_module():
+    """O pacote expõe `whisper.transcribe` como função; precisamos do módulo."""
+    return importlib.import_module("whisper.transcribe")
+
+
+def _patch_whisper_ffmpeg() -> None:
+    """Faz o Whisper usar o FFmpeg configurado, sem janela de console no Windows."""
+    global _ffmpeg_patched
+    if _ffmpeg_patched:
+        return
+
+    import subprocess
+
+    import numpy as np
+    import whisper.audio as whisper_audio
+
+    ffmpeg = str(config.FFMPEG_PATH) if config.FFMPEG_PATH else "ffmpeg"
+    flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+
+    def load_audio(file: str, sr: int = whisper_audio.SAMPLE_RATE):
+        cmd = [
+            ffmpeg,
+            "-nostdin",
+            "-threads",
+            "0",
+            "-i",
+            file,
+            "-f",
+            "s16le",
+            "-ac",
+            "1",
+            "-acodec",
+            "pcm_s16le",
+            "-ar",
+            str(sr),
+            "-",
+        ]
+        try:
+            out = subprocess.run(
+                cmd,
+                capture_output=True,
+                check=True,
+                creationflags=flags,
+            ).stdout
+        except subprocess.CalledProcessError as exc:
+            err = (exc.stderr or b"").decode("utf-8", errors="replace")
+            raise RuntimeError(f"Failed to load audio: {err}") from exc
+        return np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0
+
+    whisper_audio.load_audio = load_audio
+    _ffmpeg_patched = True
 
 
 def get_model():
@@ -32,6 +89,7 @@ def get_model():
         if _model is None:
             import whisper
 
+            _patch_whisper_ffmpeg()
             logger.info("Carregando modelo Whisper '%s'...", config.WHISPER_MODEL)
             _model = whisper.load_model(config.WHISPER_MODEL)
             logger.info("Modelo Whisper carregado.")
@@ -40,8 +98,8 @@ def get_model():
 
 def _patch_whisper_tqdm(progress_callback: ProgressCallback | None):
     import tqdm as tqdm_mod
-    import whisper.transcribe as whisper_transcribe
 
+    whisper_transcribe = _whisper_transcribe_module()
     original = whisper_transcribe.tqdm
 
     class ProgressTqdm(tqdm_mod.tqdm):
@@ -72,7 +130,7 @@ def transcribe_file(input_path: Path, progress_callback: ProgressCallback | None
     if progress_callback:
         progress_callback(1.0)
 
-    import whisper.transcribe as whisper_transcribe
+    whisper_transcribe = _whisper_transcribe_module()
 
     with _transcribe_lock:
         original_tqdm = _patch_whisper_tqdm(progress_callback)
