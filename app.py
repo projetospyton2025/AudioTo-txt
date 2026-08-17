@@ -8,7 +8,7 @@ import time
 import uuid
 from pathlib import Path
 
-from flask import Flask, abort, jsonify, make_response, render_template, request, send_from_directory
+from flask import Flask, abort, jsonify, render_template, request, send_from_directory
 from werkzeug.exceptions import HTTPException, RequestEntityTooLarge
 from werkzeug.utils import secure_filename
 
@@ -28,6 +28,9 @@ app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = config.MAX_CONTENT_LENGTH
 app.config["UPLOAD_FOLDER"] = str(config.UPLOAD_FOLDER)
 app.config["TRANSCRIPTS_FOLDER"] = str(config.TRANSCRIPTS_FOLDER)
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+CACHE_BUST = str(int(time.time()))
 
 jobs_lock = threading.Lock()
 jobs: dict[str, dict] = {}
@@ -218,20 +221,30 @@ def handle_unexpected(error):
     return jsonify(ok=False, error=_user_error("unexpected"), code="unexpected"), 500
 
 
+@app.after_request
+def disable_cache(response):
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
+@app.context_processor
+def inject_cache_bust():
+    return {"cache_bust": CACHE_BUST}
+
+
 @app.get("/")
 def index():
     cleanup_old_files()
-    html = render_template(
+    return render_template(
         "index.html",
         max_file_size=config.MAX_FILE_SIZE,
         allowed_extensions=sorted(config.ALLOWED_EXTENSIONS),
         whisper_model=config.WHISPER_MODEL,
         whisper_language=config.WHISPER_LANGUAGE,
+        cache_bust=CACHE_BUST,
     )
-    response = make_response(html)
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    response.headers["Pragma"] = "no-cache"
-    return response
 
 
 def _start_job():
@@ -296,10 +309,10 @@ def _start_job():
         inspection.get("has_audio"),
         inspection.get("has_video"),
     )
-    if not inspection.get("has_audio"):
+    if not inspection.get("has_audio") and not inspection.get("has_video") and not inspection.get("magic") and not inspection.get("is_supported"):
         _delete_quietly(input_path)
         return jsonify(ok=False, error=_user_error("no_audio"), code="no_audio"), 400
-    if not inspection.get("is_supported"):
+    if not inspection.get("is_supported") and not inspection.get("detected_format"):
         _delete_quietly(input_path)
         return jsonify(ok=False, error=_user_error("unsupported_format"), code="unsupported_format"), 400
 
@@ -412,7 +425,7 @@ def main() -> None:
     print(f"Acesse: http://{config.HOST}:{config.PORT}")
     print(f"Python: {sys.executable}")
     print(f"FFprobe: {config.FFPROBE_PATH or 'não encontrado'}")
-    print(f"Whisper: modelo {config.WHISPER_MODEL} · idioma {config.WHISPER_LANGUAGE}")
+    print(f"Cache: v{CACHE_BUST}")
     if not config.FFMPEG_PATH:
         print("Aviso: FFmpeg não foi localizado. A transcrição não funcionará até o caminho ser configurado.")
     if not whisper_available():

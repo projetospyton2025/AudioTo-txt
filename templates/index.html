@@ -11,8 +11,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=txt6">
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}?v=txt6">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ cache_bust }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}?v={{ cache_bust }}">
 </head>
 <body>
     <div class="app-bg" aria-hidden="true"></div>
@@ -54,7 +54,7 @@
                         class="file-input"
                         type="file"
                         name="file"
-                        accept=".mp3,.wav,.m4a,.aac,.flac,.ogg,.opus,.wma,.webm,.mp4,.mov,.mkv,.avi,.mpeg,.mpg,.3gp,.m4v,.amr,.aiff,.aif,audio/*,video/*"
+                        accept="audio/*,video/*,.mp3,.mp4,.wav,.m4a,.ogg,.webm,.mov,.mkv,.flac,.aac,.wma,.opus,.avi"
                     >
                     <div class="dropzone-icon" aria-hidden="true">
                         <svg viewBox="0 0 88 72" width="88" height="72" fill="none">
@@ -67,7 +67,7 @@
                         </svg>
                     </div>
                     <h2>Arraste o arquivo para gerar um TXT</h2>
-                    <p>MP3, WAV, MP4 e outros · o formato é detectado automaticamente</p>
+                    <p>Qualquer áudio ou vídeo com som · MP3, MP4, WAV, M4A e outros</p>
                     <button type="button" class="btn btn-primary" id="select-btn">Selecionar arquivo</button>
                     <ul class="formats" aria-label="Formatos aceitos">
                         <li>MP3</li><li>WAV</li><li>MP4</li><li>M4A</li><li>MOV</li><li>WEBM</li><li>OGG</li><li>FLAC</li><li>AAC</li>
@@ -162,7 +162,7 @@
     </main>
 
     <footer class="footer">
-        <p>Processamento local · resultado em .txt · máximo {{ (max_file_size / (1024 * 1024))|int }} MB</p>
+        <p>Processamento local · resultado em .txt · máximo {{ (max_file_size / (1024 * 1024))|int }} MB · v{{ cache_bust }}</p>
     </footer>
 
     <script>
@@ -171,6 +171,6 @@
             allowedExtensions: {{ allowed_extensions | tojson }}
         };
     </script>
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=txt6"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v={{ cache_bust }}"></script>
 </body>
 </html>

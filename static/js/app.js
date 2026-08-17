@@ -124,10 +124,16 @@
     function isLikelyMedia(file, sniffed) {
         const ext = extensionOf(file.name);
         if (blocked.has(ext)) return false;
-        if (knownMedia.has(ext)) return true;
-        if (sniffed) return true;
-        const mime = String(file.type || "").toLowerCase();
-        return mime.startsWith("audio/") || mime.startsWith("video/");
+        return true;
+    }
+
+    async function validateFile(file) {
+        if (!file) return "invalid_file";
+        if (file.size <= 0) return "corrupted";
+        if (file.size > maxSize) return "file_too_large";
+        const ext = extensionOf(file.name);
+        if (blocked.has(ext)) return "unsupported_format";
+        return null;
     }
 
     function showPreview(file, kind) {
@@ -189,17 +195,6 @@
         }
         if (errorMessage) errorMessage.textContent = text;
         setState("error");
-    }
-
-    async function validateFile(file) {
-        if (!file) return "invalid_file";
-        if (file.size <= 0) return "corrupted";
-        if (file.size > maxSize) return "file_too_large";
-        const sniffed = await detectClientFormat(file);
-        if (!isLikelyMedia(file, sniffed && sniffed !== "ARQUIVO" ? sniffed : null)) {
-            return "unsupported_format";
-        }
-        return null;
     }
 
     async function assignFile(file) {

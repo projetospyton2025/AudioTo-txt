@@ -184,17 +184,26 @@ def inspect_file(path: Path, original_name: str = "") -> dict:
 
     detected = probed["format"] or magic or ext_label
     has_audio = probed["has_audio"]
-    if probed["format"] is None and magic:
+    has_video = probed["has_video"]
+    if ext in config.ALLOWED_EXTENSIONS or magic:
         has_audio = True
 
+    looks_like_media = bool(
+        detected
+        or magic
+        or has_audio
+        or has_video
+        or ext in config.ALLOWED_EXTENSIONS
+    )
+
     return {
-        "detected_format": detected,
+        "detected_format": detected or (ext.upper() if ext else None),
         "detected_codec": probed["codec"],
-        "has_audio": has_audio,
-        "has_video": probed["has_video"],
+        "has_audio": has_audio or ext in config.ALLOWED_EXTENSIONS or bool(magic),
+        "has_video": has_video,
         "extension": ext or None,
         "magic": magic,
-        "is_supported": bool(detected) and has_audio,
+        "is_supported": looks_like_media,
     }
 
 
