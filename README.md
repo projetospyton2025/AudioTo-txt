@@ -1,4 +1,4 @@
-# AudioTo-txt
+# AudioTo-txt.
 
 Aplicação web local para transcrever áudio em texto. O usuário abre o navegador, arrasta um MP3 (ou outro formato), acompanha a transcrição e copia ou baixa o resultado em TXT. O processamento roda neste computador com Whisper e FFmpeg.
 
